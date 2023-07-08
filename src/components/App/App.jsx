@@ -21,32 +21,29 @@ export const App = () => {
   const [loader, setLoader] = useState(false);
 
   useEffect(() => {
-    if (value === '') {
-      return;
-    }
-    searchImage(value, page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, value]);
+    const searchImage = async (value, page) => {
+      setLoader(true);
+      try {
+        const { hits, totalHits } = await API.getImage(value, page);
 
-  const searchImage = async (value, page) => {
-    setLoader(true);
-    try {
-      const { hits, totalHits } = await API.getImage(value, page);
+        if (hits.length === 0) {
+          setError('😥OOPS... undefined image');
+          setLoader(false);
+          return;
+        }
 
-      if (hits.length === 0) {
-        setError('😥OOPS... undefined image');
+        setImages(state => [...state, ...hits]);
+        setTotal(totalHits);
+        setError(null);
         setLoader(false);
-        return;
+      } catch (error) {
+        setError(error.message);
       }
-
-      setImages(state => [...state, ...hits]);
-      setTotal(totalHits);
-      setError(null);
-      setLoader(false);
-    } catch (error) {
-      setError(error.message);
+    };
+    if (value) {
+      searchImage(value, page);
     }
-  };
+  }, [page, value]);
 
   const onOpenModal = largeImage => {
     setShowModal(true);
@@ -74,12 +71,10 @@ export const App = () => {
       {loader && <Loader />}
       {error && <ErrorTitle message={error} />}
       {images.length !== 0 && (
-        <>
-          <ImageGallery images={images} openModal={onOpenModal} />
-          {page < Math.ceil(total / 12) && (
-            <LoadMore handleLoadMore={handleLoadMore} />
-          )}
-        </>
+        <ImageGallery images={images} openModal={onOpenModal} />
+      )}
+      {page < Math.ceil(total / 12) && !loader && images.length > 0 && (
+        <LoadMore handleLoadMore={handleLoadMore} />
       )}
       {showModal && <Modal image={largeImage} onCloseModal={onCloseModal} />}
 
@@ -87,4 +82,3 @@ export const App = () => {
     </Container>
   );
 };
-
